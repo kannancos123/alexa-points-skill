@@ -1,0 +1,11 @@
+.DS_Store
+**/.DS_Store
+**/node_modules/
+**/*.log
+**/.env
+**/.env.*
+
+# Local secrets and build artifacts
+alexa-points-skill/sa.json
+alexa-points-skill/lambda.zip
+alexa-points-skill/homecards/lambda.zip

@@ -1,0 +1,16 @@
+{
+  "name": "alexa-points-skill",
+  "version": "0.1.0",
+  "description": "Alexa skill to track daily points for family using Google Sheets",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ask-sdk-core": "^2.12.1",
+    "aws-sdk": "^2.1584.0",
+    "googleapis": "^140.0.0",
+    "luxon": "^3.5.0"
+  }
+}

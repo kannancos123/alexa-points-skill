@@ -1,0 +1,13 @@
+{
+  "name": "alexa-points-homecards",
+  "version": "0.1.0",
+  "description": "Home card publisher for Alexa Family Points",
+  "main": "index.js",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1584.0"
+  }
+}

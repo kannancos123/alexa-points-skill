@@ -1,0 +1,87 @@
+{
+  "type": "APL",
+  "version": "2022.2",
+  "theme": "light",
+  "mainTemplate": {
+    "parameters": ["payload"],
+    "items": [
+      {
+        "type": "Container",
+        "direction": "column",
+        "paddingTop": "20dp",
+        "paddingLeft": "24dp",
+        "paddingRight": "24dp",
+        "items": [
+          {
+            "type": "Text",
+            "text": "${payload.title}",
+            "fontSize": "28dp",
+            "fontWeight": "700"
+          },
+          {
+            "type": "Container",
+            "direction": "row",
+            "spacing": "16dp",
+            "paddingTop": "12dp",
+            "data": "${payload.people}",
+            "items": [
+              {
+                "type": "Container",
+                "direction": "column",
+                "width": "25%",
+                "alignItems": "center",
+                "items": [
+                  {
+                    "type": "Text",
+                    "text": "${data.name}",
+                    "fontSize": "20dp",
+                    "fontWeight": "600",
+                    "textAlign": "center"
+                  },
+                  {
+                    "type": "Container",
+                    "direction": "row",
+                    "alignItems": "end",
+                    "justifyContent": "center",
+                    "height": "220dp",
+                    "spacing": "10dp",
+                    "data": "${data.bars}",
+                    "items": [
+                      {
+                        "type": "Container",
+                        "direction": "column",
+                        "alignItems": "center",
+                        "justifyContent": "end",
+                        "items": [
+                          {
+                            "type": "Frame",
+                            "width": "24dp",
+                            "height": "${data.height}dp",
+                            "backgroundColor": "${data.color}",
+                            "borderRadius": "6dp"
+                          },
+                          {
+                            "type": "Text",
+                            "text": "${data.value}",
+                            "fontSize": "14dp",
+                            "paddingTop": "4dp"
+                          },
+                          {
+                            "type": "Text",
+                            "text": "${data.label}",
+                            "fontSize": "12dp",
+                            "color": "#555555"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

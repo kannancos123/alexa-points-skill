@@ -1,0 +1,36 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "name": "Family Points Tracker",
+          "summary": "Track daily points for family members.",
+          "description": "Track daily points for Krish, Adith, Kamal, and Amirtha. Add or reduce points and ask for today's summary.",
+          "examplePhrases": [
+            "Alexa, open family points",
+            "add a point for Krish",
+            "what's today's summary"
+          ],
+          "keywords": ["points", "family", "kids", "tracker"]
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Test add/reduce points and daily summary.",
+      "category": "ORGANIZERS_AND_ASSISTANTS",
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "interfaces": [
+          {
+            "type": "ALEXA_PRESENTATION_APL"
+          },
+          {
+            "type": "CAN_FULFILL_INTENT_REQUEST"
+          }
+        ]
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}
