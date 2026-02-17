@@ -2,20 +2,30 @@
 
 const Alexa = require('ask-sdk-core');
 const AWS = require('aws-sdk');
+const crypto = require('crypto');
 const { google } = require('googleapis');
 const { DateTime } = require('luxon');
 const APL_DOC = require('./apl/trend.json');
 
 const TIMEZONE = 'Europe/Oslo';
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
-const SHEET_TAB = process.env.GOOGLE_SHEET_TAB || 'Events';
 const SECRET_NAME = process.env.GOOGLE_SA_SECRET_NAME;
 const SECRET_REGION =
   process.env.GOOGLE_SA_SECRET_REGION || process.env.AWS_REGION || 'eu-west-1';
+const FAMILIES_TAB = process.env.GOOGLE_FAMILIES_TAB || 'Families';
+const EVENTS_TAB_PREFIX = process.env.GOOGLE_EVENTS_TAB_PREFIX || 'Family_';
 
-const PERSONS = ['Krish', 'Adith', 'Kamal', 'Amirtha'];
-const KIDS = ['Krish', 'Adith'];
 const MAX_BAR_HEIGHT = 200;
+const MAX_KIDS = 6;
+const EVENTS_HEADER = [
+  'timestamp_iso',
+  'date',
+  'person',
+  'delta',
+  'who',
+  'note',
+];
+const FAMILIES_HEADER = ['user_id', 'tab_name', 'kids', 'created_at', 'updated_at'];
 
 let sheetsClientPromise = null;
 
@@ -26,6 +36,23 @@ function ensureConfig() {
   if (!SECRET_NAME) {
     throw new Error('Missing GOOGLE_SA_SECRET_NAME env var');
   }
+}
+
+function getUserId(handlerInput) {
+  return (
+    handlerInput.requestEnvelope.context &&
+    handlerInput.requestEnvelope.context.System &&
+    handlerInput.requestEnvelope.context.System.user &&
+    handlerInput.requestEnvelope.context.System.user.userId
+  );
+}
+
+function hashUserId(userId) {
+  return crypto.createHash('sha256').update(userId).digest('hex').slice(0, 10);
+}
+
+function buildFamilyTabName(userId) {
+  return `${EVENTS_TAB_PREFIX}${hashUserId(userId)}`;
 }
 
 async function getServiceAccountCredentials() {
@@ -64,7 +91,123 @@ async function getSheetsClient() {
   return sheetsClientPromise;
 }
 
-async function appendEvent(event) {
+async function getSheetNames() {
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.get({
+    spreadsheetId: SHEET_ID,
+    fields: 'sheets.properties.title',
+  });
+  const list = res.data.sheets || [];
+  return list.map((s) => s.properties.title);
+}
+
+async function ensureSheetExists(sheetName) {
+  const names = await getSheetNames();
+  if (names.includes(sheetName)) return;
+
+  const sheets = await getSheetsClient();
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId: SHEET_ID,
+    requestBody: {
+      requests: [{ addSheet: { properties: { title: sheetName } } }],
+    },
+  });
+}
+
+async function ensureHeaderRow(sheetName, header) {
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${sheetName}!A1:Z1`,
+  });
+
+  const row = res.data.values && res.data.values[0];
+  if (!row || row.length === 0) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${sheetName}!A1:${String.fromCharCode(64 + header.length)}1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [header] },
+    });
+  }
+}
+
+async function ensureFamiliesSheet() {
+  await ensureSheetExists(FAMILIES_TAB);
+  await ensureHeaderRow(FAMILIES_TAB, FAMILIES_HEADER);
+}
+
+async function ensureEventsSheet(tabName) {
+  await ensureSheetExists(tabName);
+  await ensureHeaderRow(tabName, EVENTS_HEADER);
+}
+
+async function readFamilies() {
+  await ensureFamiliesSheet();
+  const sheets = await getSheetsClient();
+  const res = await sheets.spreadsheets.values.get({
+    spreadsheetId: SHEET_ID,
+    range: `${FAMILIES_TAB}!A2:E`,
+  });
+  const rows = res.data.values || [];
+  return rows.map((row, idx) => ({
+    rowIndex: idx + 2,
+    userId: row[0] || '',
+    tabName: row[1] || '',
+    kids: row[2] || '',
+    createdAt: row[3] || '',
+    updatedAt: row[4] || '',
+  }));
+}
+
+async function getFamilyConfig(handlerInput) {
+  const userId = getUserId(handlerInput);
+  if (!userId) return null;
+  const families = await readFamilies();
+  const row = families.find((f) => f.userId === userId);
+  if (!row) return null;
+
+  const kids = parseKidsList(row.kids);
+  return {
+    userId,
+    rowIndex: row.rowIndex,
+    tabName: row.tabName,
+    kids,
+  };
+}
+
+async function saveFamilyConfig(userId, kids, existingRow) {
+  await ensureFamiliesSheet();
+  const tabName = existingRow?.tabName || buildFamilyTabName(userId);
+  await ensureEventsSheet(tabName);
+
+  const sheets = await getSheetsClient();
+  const now = DateTime.now().setZone(TIMEZONE).toISO();
+  const kidsValue = kids.join(', ');
+
+  if (existingRow) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SHEET_ID,
+      range: `${FAMILIES_TAB}!C${existingRow.rowIndex}:E${existingRow.rowIndex}`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [[kidsValue, existingRow.createdAt || now, now]] },
+    });
+  } else {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SHEET_ID,
+      range: `${FAMILIES_TAB}!A:E`,
+      valueInputOption: 'RAW',
+      insertDataOption: 'INSERT_ROWS',
+      requestBody: {
+        values: [[userId, tabName, kidsValue, now, now]],
+      },
+    });
+  }
+
+  return { tabName, kids };
+}
+
+async function appendEvent(event, tabName) {
   const sheets = await getSheetsClient();
   const values = [
     [
@@ -79,18 +222,18 @@ async function appendEvent(event) {
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: SHEET_ID,
-    range: `${SHEET_TAB}!A:F`,
+    range: `${tabName}!A:F`,
     valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
     requestBody: { values },
   });
 }
 
-async function readEvents() {
+async function readEvents(tabName) {
   const sheets = await getSheetsClient();
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: `${SHEET_TAB}!A2:F`,
+    range: `${tabName}!A2:F`,
   });
 
   const rows = res.data.values || [];
@@ -126,19 +269,48 @@ function getSlotValue(handlerInput, slotName) {
   return slot.value || null;
 }
 
-function normalizePerson(raw) {
+function normalizeName(raw) {
+  if (!raw) return '';
+  const cleaned = raw.trim().replace(/\s+/g, ' ');
+  return cleaned.charAt(0).toUpperCase() + cleaned.slice(1).toLowerCase();
+}
+
+function parseKidsList(raw) {
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map((name) => normalizeName(name))
+    .filter((name) => name);
+}
+
+function parseKidsInput(raw) {
+  if (!raw) return [];
+  const cleaned = raw
+    .replace(/&/g, ' and ')
+    .replace(/\s+and\s+/gi, ',')
+    .replace(/\s*,\s*/g, ',')
+    .trim();
+
+  const names = cleaned
+    .split(',')
+    .map((name) => normalizeName(name))
+    .filter((name) => name);
+
+  const unique = [];
+  for (const name of names) {
+    if (!unique.find((n) => n.toLowerCase() === name.toLowerCase())) {
+      unique.push(name);
+    }
+  }
+
+  return unique.slice(0, MAX_KIDS);
+}
+
+function normalizeKidName(raw, kids) {
   if (!raw) return null;
-  const key = raw.toLowerCase().trim();
-  const map = {
-    krish: 'Krish',
-    krishna: 'Krish',
-    adith: 'Adith',
-    adit: 'Adith',
-    kamal: 'Kamal',
-    amirtha: 'Amirtha',
-    amrita: 'Amirtha',
-  };
-  return map[key] || PERSONS.find((p) => p.toLowerCase() === key) || null;
+  const cleaned = raw.toLowerCase().replace(/'s$/, '').trim();
+  const match = kids.find((k) => k.toLowerCase() === cleaned);
+  return match || null;
 }
 
 function getLast3Days(now) {
@@ -149,27 +321,27 @@ function getLast3Days(now) {
   return { dates, labels };
 }
 
-function buildTotals(events, dates) {
+function buildTotals(events, dates, kids) {
   const totals = {};
   for (const date of dates) {
     totals[date] = {};
-    for (const person of PERSONS) {
-      totals[date][person] = 0;
+    for (const kid of kids) {
+      totals[date][kid] = 0;
     }
   }
 
   for (const event of events) {
     if (!totals[event.date]) continue;
-    const person = normalizePerson(event.person);
-    if (!person) continue;
-    totals[event.date][person] += event.delta;
+    const kid = normalizeName(event.person);
+    if (!totals[event.date][kid]) totals[event.date][kid] = 0;
+    totals[event.date][kid] += event.delta;
   }
 
   return totals;
 }
 
-function buildTrendPayload(dates, labels, totals) {
-  const series = PERSONS.map((name) => {
+function buildTrendPayload(dates, labels, totals, kids) {
+  const series = kids.map((name) => {
     const values = dates.map((date) => totals[date][name] || 0);
     return { name, values };
   });
@@ -204,9 +376,30 @@ function formatPoints(value) {
   return `${abs} ${points}`;
 }
 
+function joinWithAnd(items) {
+  if (items.length === 0) return '';
+  if (items.length === 1) return items[0];
+  if (items.length === 2) return `${items[0]} and ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+}
+
 function supportsAPL(handlerInput) {
   const interfaces = Alexa.getSupportedInterfaces(handlerInput.requestEnvelope);
   return interfaces && interfaces['Alexa.Presentation.APL'];
+}
+
+function addDynamicKids(responseBuilder, kids) {
+  if (!kids || kids.length === 0) return;
+  responseBuilder.addDirective({
+    type: 'Dialog.UpdateDynamicEntities',
+    updateBehavior: 'REPLACE',
+    types: [
+      {
+        name: 'KID_NAME',
+        values: kids.map((kid) => ({ name: { value: kid } })),
+      },
+    ],
+  });
 }
 
 function buildCanFulfillResponse(canFulfill, slots) {
@@ -223,6 +416,30 @@ function buildCanFulfillResponse(canFulfill, slots) {
   return response;
 }
 
+function promptForKids(handlerInput) {
+  const speakOutput =
+    'Welcome. To get started, tell me your kids\' names. For example, say: my kids are Krish and Adith.';
+  return handlerInput.responseBuilder
+    .speak(speakOutput)
+    .reprompt('Please tell me your kids\' names.')
+    .getResponse();
+}
+
+async function buildSummaryData(tabName, kids) {
+  const now = DateTime.now().setZone(TIMEZONE);
+  const events = await readEvents(tabName);
+  const { dates, labels } = getLast3Days(now);
+  const totals = buildTotals(events, dates, kids);
+  return { now, dates, labels, totals };
+}
+
+function buildSummarySpeech(now, kids, totals) {
+  const today = now.toISODate();
+  const todayTotals = totals[today] || {};
+  const parts = kids.map((kid) => `${kid} has ${formatPoints(todayTotals[kid] || 0)}`);
+  return `Today, ${joinWithAnd(parts)}.`;
+}
+
 const CanFulfillIntentRequestHandler = {
   canHandle(handlerInput) {
     return (
@@ -235,35 +452,21 @@ const CanFulfillIntentRequestHandler = {
     const intentName = intent.name;
 
     if (intentName === 'AdjustPointsIntent') {
-      const slots = intent.slots || {};
-      const personSlot = slots.person && slots.person.value;
-      const normalizedPerson = normalizePerson(personSlot);
-      const deltaSlot = slots.delta && slots.delta.value;
-      const deltaOk = Number.isFinite(parseInt(deltaSlot, 10));
-      const directionSlot = slots.direction && slots.direction.value;
-
-      const slotStates = {
-        person: normalizedPerson
-          ? { canUnderstand: 'YES', canFulfill: 'YES' }
-          : personSlot
-          ? { canUnderstand: 'NO', canFulfill: 'NO' }
-          : { canUnderstand: 'MAYBE', canFulfill: 'MAYBE' },
-        delta: deltaSlot
-          ? deltaOk
-            ? { canUnderstand: 'YES', canFulfill: 'YES' }
-            : { canUnderstand: 'NO', canFulfill: 'NO' }
-          : { canUnderstand: 'MAYBE', canFulfill: 'MAYBE' },
-        direction: directionSlot
-          ? { canUnderstand: 'YES', canFulfill: 'YES' }
-          : { canUnderstand: 'MAYBE', canFulfill: 'MAYBE' },
-      };
-
-      const canFulfill = normalizedPerson ? 'YES' : 'MAYBE';
-      return buildCanFulfillResponse(canFulfill, slotStates);
+      return buildCanFulfillResponse('YES', {
+        person: { canUnderstand: 'MAYBE', canFulfill: 'MAYBE' },
+        delta: { canUnderstand: 'YES', canFulfill: 'YES' },
+        direction: { canUnderstand: 'YES', canFulfill: 'YES' },
+      });
     }
 
     if (intentName === 'SummaryIntent') {
       return buildCanFulfillResponse('YES');
+    }
+
+    if (intentName === 'ConfigureKidsIntent') {
+      return buildCanFulfillResponse('YES', {
+        kids: { canUnderstand: 'YES', canFulfill: 'YES' },
+      });
     }
 
     return buildCanFulfillResponse('NO');
@@ -274,10 +477,75 @@ const LaunchRequestHandler = {
   canHandle(handlerInput) {
     return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
   },
-  handle(handlerInput) {
-    const speakOutput =
-      'You can add or reduce points for Krish, Adith, Kamal, or Amirtha, or ask for today\'s summary.';
-    return handlerInput.responseBuilder.speak(speakOutput).reprompt(speakOutput).getResponse();
+  async handle(handlerInput) {
+    ensureConfig();
+
+    const config = await getFamilyConfig(handlerInput);
+    if (!config || config.kids.length === 0) {
+      return promptForKids(handlerInput);
+    }
+
+    const summaryData = await buildSummaryData(config.tabName, config.kids);
+    const speakOutput = buildSummarySpeech(
+      summaryData.now,
+      config.kids,
+      summaryData.totals
+    );
+
+    const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    addDynamicKids(responseBuilder, config.kids);
+
+    if (supportsAPL(handlerInput)) {
+      const payload = buildTrendPayload(
+        summaryData.dates,
+        summaryData.labels,
+        summaryData.totals,
+        config.kids
+      );
+      responseBuilder.addDirective({
+        type: 'Alexa.Presentation.APL.RenderDocument',
+        token: 'trend',
+        document: APL_DOC,
+        datasources: { payload },
+      });
+    }
+
+    return responseBuilder.getResponse();
+  },
+};
+
+const ConfigureKidsIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+      Alexa.getIntentName(handlerInput.requestEnvelope) === 'ConfigureKidsIntent'
+    );
+  },
+  async handle(handlerInput) {
+    ensureConfig();
+
+    const rawKids = getSlotValue(handlerInput, 'kids');
+    const kids = parseKidsInput(rawKids);
+    if (kids.length === 0) {
+      const speakOutput =
+        'Sorry, I did not catch the names. Please say: my kids are ...';
+      return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt('Please tell me your kids\' names.')
+        .getResponse();
+    }
+
+    const userId = getUserId(handlerInput);
+    const existing = await getFamilyConfig(handlerInput);
+    const saved = await saveFamilyConfig(userId, kids, existing);
+
+    const speakOutput = `Great. I will track points for ${joinWithAnd(
+      saved.kids
+    )}. You can say, add a point for ${saved.kids[0]}.`;
+
+    const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    addDynamicKids(responseBuilder, saved.kids);
+    return responseBuilder.getResponse();
   },
 };
 
@@ -291,18 +559,37 @@ const AdjustPointsIntentHandler = {
   async handle(handlerInput) {
     ensureConfig();
 
+    const config = await getFamilyConfig(handlerInput);
+    if (!config || config.kids.length === 0) {
+      return promptForKids(handlerInput);
+    }
+
     const rawPerson = getSlotValue(handlerInput, 'person');
-    const person = normalizePerson(rawPerson);
+    const person = normalizeKidName(rawPerson, config.kids);
     if (!person) {
-      const speakOutput = 'Who should I update?';
-      return handlerInput.responseBuilder.speak(speakOutput).reprompt(speakOutput).getResponse();
+      const speakOutput = `Which child should I update? You can say ${joinWithAnd(
+        config.kids
+      )}.`;
+      const responseBuilder = handlerInput.responseBuilder
+        .speak(speakOutput)
+        .reprompt(speakOutput);
+      addDynamicKids(responseBuilder, config.kids);
+      return responseBuilder.getResponse();
     }
 
     const rawDirection = getSlotValue(handlerInput, 'direction');
     const direction = rawDirection ? rawDirection.toLowerCase() : 'add';
     const rawDelta = getSlotValue(handlerInput, 'delta');
     const amount = Math.max(1, Math.abs(toInt(rawDelta || 1)));
-    const negativeWords = ['reduce', 'remove', 'minus', 'subtract', 'deduct', 'take away', 'takeaway'];
+    const negativeWords = [
+      'reduce',
+      'remove',
+      'minus',
+      'subtract',
+      'deduct',
+      'take away',
+      'takeaway',
+    ];
     const isNegative = negativeWords.some((word) => direction.includes(word));
     const delta = isNegative ? -amount : amount;
 
@@ -316,17 +603,36 @@ const AdjustPointsIntentHandler = {
       note: delta > 0 ? `Added ${amount}` : `Reduced ${amount}`,
     };
 
-    await appendEvent(event);
+    await appendEvent(event, config.tabName);
 
-    const events = await readEvents();
-    const { dates } = getLast3Days(now);
-    const totals = buildTotals(events, dates);
-    const todayTotal = totals[now.toISODate()][person] || 0;
+    const summaryData = await buildSummaryData(config.tabName, config.kids);
+    const todayTotals = summaryData.totals[summaryData.now.toISODate()] || {};
+    const todayTotal = todayTotals[person] || 0;
 
     const actionText = delta > 0 ? 'added' : 'reduced';
-    const speakOutput = `Okay, ${actionText} ${Math.abs(delta)} ${Math.abs(delta) === 1 ? 'point' : 'points'} for ${person}. ${person} has ${formatPoints(todayTotal)} today.`;
+    const speakOutput = `Okay, ${actionText} ${Math.abs(delta)} ${
+      Math.abs(delta) === 1 ? 'point' : 'points'
+    } for ${person}. ${person} has ${formatPoints(todayTotal)} today.`;
 
-    return handlerInput.responseBuilder.speak(speakOutput).getResponse();
+    const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    addDynamicKids(responseBuilder, config.kids);
+
+    if (supportsAPL(handlerInput)) {
+      const payload = buildTrendPayload(
+        summaryData.dates,
+        summaryData.labels,
+        summaryData.totals,
+        config.kids
+      );
+      responseBuilder.addDirective({
+        type: 'Alexa.Presentation.APL.RenderDocument',
+        token: 'trend',
+        document: APL_DOC,
+        datasources: { payload },
+      });
+    }
+
+    return responseBuilder.getResponse();
   },
 };
 
@@ -340,21 +646,28 @@ const SummaryIntentHandler = {
   async handle(handlerInput) {
     ensureConfig();
 
-    const now = DateTime.now().setZone(TIMEZONE);
-    const events = await readEvents();
-    const { dates, labels } = getLast3Days(now);
-    const totals = buildTotals(events, dates);
+    const config = await getFamilyConfig(handlerInput);
+    if (!config || config.kids.length === 0) {
+      return promptForKids(handlerInput);
+    }
 
-    const today = now.toISODate();
-    const krishTotal = totals[today]['Krish'] || 0;
-    const adithTotal = totals[today]['Adith'] || 0;
-
-    const speakOutput = `Today, Krish has ${formatPoints(krishTotal)} and Adith has ${formatPoints(adithTotal)}.`;
+    const summaryData = await buildSummaryData(config.tabName, config.kids);
+    const speakOutput = buildSummarySpeech(
+      summaryData.now,
+      config.kids,
+      summaryData.totals
+    );
 
     const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    addDynamicKids(responseBuilder, config.kids);
 
     if (supportsAPL(handlerInput)) {
-      const payload = buildTrendPayload(dates, labels, totals);
+      const payload = buildTrendPayload(
+        summaryData.dates,
+        summaryData.labels,
+        summaryData.totals,
+        config.kids
+      );
       responseBuilder.addDirective({
         type: 'Alexa.Presentation.APL.RenderDocument',
         token: 'trend',
@@ -376,8 +689,11 @@ const HelpIntentHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      'Try saying: add a point for Krish, reduce two points for Adith, or what is today\'s summary.';
-    return handlerInput.responseBuilder.speak(speakOutput).reprompt(speakOutput).getResponse();
+      'You can say: my kids are Anna and Ben. Or say: add a point for Anna. Or: today\'s summary.';
+    return handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(speakOutput)
+      .getResponse();
   },
 };
 
@@ -385,8 +701,10 @@ const CancelAndStopIntentHandler = {
   canHandle(handlerInput) {
     return (
       Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
-      (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent' ||
-        Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent')
+      (Alexa.getIntentName(handlerInput.requestEnvelope) ===
+        'AMAZON.CancelIntent' ||
+        Alexa.getIntentName(handlerInput.requestEnvelope) ===
+          'AMAZON.StopIntent')
     );
   },
   handle(handlerInput) {
@@ -398,13 +716,17 @@ const FallbackIntentHandler = {
   canHandle(handlerInput) {
     return (
       Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
-      Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent'
+      Alexa.getIntentName(handlerInput.requestEnvelope) ===
+        'AMAZON.FallbackIntent'
     );
   },
   handle(handlerInput) {
     const speakOutput =
-      'Sorry, I did not catch that. Try saying add a point for Krish or ask for today\'s summary.';
-    return handlerInput.responseBuilder.speak(speakOutput).reprompt(speakOutput).getResponse();
+      'Sorry, I did not catch that. Try saying add a point for your child or ask for today\'s summary.';
+    return handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(speakOutput)
+      .getResponse();
   },
 };
 
@@ -424,6 +746,7 @@ exports.handler = Alexa.SkillBuilders.custom()
   .addRequestHandlers(
     CanFulfillIntentRequestHandler,
     LaunchRequestHandler,
+    ConfigureKidsIntentHandler,
     AdjustPointsIntentHandler,
     SummaryIntentHandler,
     HelpIntentHandler,

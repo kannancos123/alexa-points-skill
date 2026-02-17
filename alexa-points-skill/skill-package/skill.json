@@ -5,11 +5,60 @@
         "en-US": {
           "name": "Family Points Tracker",
           "summary": "Track daily points for family members.",
-          "description": "Track daily points for Krish, Adith, Kamal, and Amirtha. Add or reduce points and ask for today's summary.",
+          "description": "Track daily points for your family. Add or reduce points and ask for today\'s summary.",
           "examplePhrases": [
             "Alexa, open family points",
-            "add a point for Krish",
-            "what's today's summary"
+            "Alexa, launch family points",
+            "Alexa, start family points",
+            "Alexa, ask family points for today\'s summary"
+          ],
+          "keywords": ["points", "family", "kids", "tracker"]
+        },
+        "en-GB": {
+          "name": "Family Points Tracker",
+          "summary": "Track daily points for family members.",
+          "description": "Track daily points for your family. Add or reduce points and ask for today\'s summary.",
+          "examplePhrases": [
+            "Alexa, open family points",
+            "Alexa, launch family points",
+            "Alexa, start family points",
+            "Alexa, ask family points for today\'s summary"
+          ],
+          "keywords": ["points", "family", "kids", "tracker"]
+        },
+        "en-CA": {
+          "name": "Family Points Tracker",
+          "summary": "Track daily points for family members.",
+          "description": "Track daily points for your family. Add or reduce points and ask for today\'s summary.",
+          "examplePhrases": [
+            "Alexa, open family points",
+            "Alexa, launch family points",
+            "Alexa, start family points",
+            "Alexa, ask family points for today\'s summary"
+          ],
+          "keywords": ["points", "family", "kids", "tracker"]
+        },
+        "en-AU": {
+          "name": "Family Points Tracker",
+          "summary": "Track daily points for family members.",
+          "description": "Track daily points for your family. Add or reduce points and ask for today\'s summary.",
+          "examplePhrases": [
+            "Alexa, open family points",
+            "Alexa, launch family points",
+            "Alexa, start family points",
+            "Alexa, ask family points for today\'s summary"
+          ],
+          "keywords": ["points", "family", "kids", "tracker"]
+        },
+        "en-IN": {
+          "name": "Family Points Tracker",
+          "summary": "Track daily points for family members.",
+          "description": "Track daily points for your family. Add or reduce points and ask for today\'s summary.",
+          "examplePhrases": [
+            "Alexa, open family points",
+            "Alexa, launch family points",
+            "Alexa, start family points",
+            "Alexa, ask family points for today\'s summary"
           ],
           "keywords": ["points", "family", "kids", "tracker"]
         }
