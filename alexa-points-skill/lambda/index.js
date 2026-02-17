@@ -418,7 +418,7 @@ function buildCanFulfillResponse(canFulfill, slots) {
 
 function promptForKids(handlerInput) {
   const speakOutput =
-    'Welcome. To get started, tell me your kids\' names. For example, say: my kids are Krish and Adith.';
+    'Welcome to points tracking for your kids. State the name of all the kids. For example, say: my kids are Alex, Krish and Jasmine.';
   return handlerInput.responseBuilder
     .speak(speakOutput)
     .reprompt('Please tell me your kids\' names.')
