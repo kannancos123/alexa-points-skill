@@ -34,7 +34,14 @@
             "take away {delta} points from {person}",
             "deduct a point from {person}",
             "{direction} {delta} points for {person}",
-            "{direction} a point for {person}"
+            "{direction} a point for {person}",
+            "add one point to {person}",
+            "add one point for {person}",
+            "give {person} one point",
+            "give one point to {person}",
+            "award one point to {person}",
+            "deduct one point from {person}",
+            "take away one point from {person}"
           ]
         },
         {
@@ -90,7 +97,10 @@
             {
               "name": {
                 "value": "child",
-                "synonyms": ["kid", "kids"]
+                "synonyms": [
+                  "kid",
+                  "kids"
+                ]
               }
             }
           ]
@@ -101,13 +111,23 @@
             {
               "name": {
                 "value": "add",
-                "synonyms": ["give", "increase", "plus"]
+                "synonyms": [
+                  "give",
+                  "increase",
+                  "plus"
+                ]
               }
             },
             {
               "name": {
                 "value": "reduce",
-                "synonyms": ["remove", "deduct", "take away", "minus", "subtract"]
+                "synonyms": [
+                  "remove",
+                  "deduct",
+                  "take away",
+                  "minus",
+                  "subtract"
+                ]
               }
             }
           ]
@@ -120,22 +140,92 @@
           "type": "INTENT",
           "name": "AdjustPointsIntent",
           "sampleUtterances": [
-            { "format": "RAW_TEXT", "value": "add a point" },
-            { "format": "RAW_TEXT", "value": "add a point to" },
-            { "format": "RAW_TEXT", "value": "add points" },
-            { "format": "RAW_TEXT", "value": "give a point" },
-            { "format": "RAW_TEXT", "value": "reduce a point" }
+            {
+              "format": "RAW_TEXT",
+              "value": "add a point"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "add a point to"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "add points"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "give a point"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "reduce a point"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "add one point"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "give one point"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "award a point"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "deduct a point"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "take away a point"
+            }
           ]
         },
         {
           "type": "INTENT",
           "name": "SummaryIntent",
           "sampleUtterances": [
-            { "format": "RAW_TEXT", "value": "today's summary" },
-            { "format": "RAW_TEXT", "value": "daily summary" },
-            { "format": "RAW_TEXT", "value": "points today" },
-            { "format": "RAW_TEXT", "value": "today's points" },
-            { "format": "RAW_TEXT", "value": "points summary" }
+            {
+              "format": "RAW_TEXT",
+              "value": "today's summary"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "daily summary"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "points today"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "today's points"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "points summary"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "point summary"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "current points"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "point totals"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "how many points today"
+            },
+            {
+              "format": "RAW_TEXT",
+              "value": "what's the point total"
+            }
           ]
         }
       ]
