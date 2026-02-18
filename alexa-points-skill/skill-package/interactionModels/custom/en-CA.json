@@ -61,7 +61,11 @@
             "summary this week",
             "summary this month",
             "points this week",
-            "points this month"
+            "points this month",
+            "weekly summary",
+            "monthly summary",
+            "weekly points",
+            "monthly points"
           ],
           "slots": [
             {
