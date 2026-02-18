@@ -135,7 +135,7 @@
               },
               {
                 "type": "Text",
-                "text": "Today",
+                "text": "${payload.summaryLabel}",
                 "style": "textSection",
                 "textAlign": "center",
                 "paddingTop": "12dp"
@@ -144,7 +144,7 @@
                 "type": "Container",
                 "spacing": "8dp",
                 "paddingTop": "12dp",
-                "data": "${payload.today}",
+                "data": "${payload.summary}",
                 "items": [
                   {
                     "type": "Container",
@@ -160,6 +160,47 @@
                         "type": "Text",
                         "text": "${data.display}",
                         "style": "textScoreRound"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Text",
+                "text": "${payload.title}",
+                "style": "textSection",
+                "textAlign": "center",
+                "paddingTop": "12dp"
+              },
+              {
+                "type": "Container",
+                "direction": "row",
+                "alignItems": "end",
+                "justifyContent": "center",
+                "height": "70dp",
+                "spacing": "${payload.barSpacing}dp",
+                "paddingTop": "8dp",
+                "data": "${payload.spark}",
+                "items": [
+                  {
+                    "type": "Container",
+                    "direction": "column",
+                    "alignItems": "center",
+                    "justifyContent": "end",
+                    "items": [
+                      {
+                        "type": "Frame",
+                        "width": "${data.width}dp",
+                        "height": "${data.height}dp",
+                        "backgroundColor": "${data.color}",
+                        "borderRadius": "4dp"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${data.label}",
+                        "style": "textCaption",
+                        "opacity": "${data.labelOpacity}",
+                        "paddingTop": "2dp"
                       }
                     ]
                   }
@@ -222,14 +263,14 @@
                 "items": [
                   {
                     "type": "Text",
-                    "text": "Today",
+                    "text": "${payload.summaryLabel}",
                     "style": "textSection"
                   },
                   {
                     "type": "Container",
                     "spacing": "10dp",
                     "paddingTop": "10dp",
-                    "data": "${payload.today}",
+                    "data": "${payload.summary}",
                     "items": [
                       {
                         "type": "Container",
@@ -287,7 +328,7 @@
                             "alignItems": "end",
                             "justifyContent": "center",
                             "height": "180dp",
-                            "spacing": "6dp",
+                            "spacing": "${payload.barSpacing}dp",
                             "data": "${data.bars}",
                             "items": [
                               {
@@ -298,7 +339,7 @@
                                 "items": [
                                   {
                                     "type": "Frame",
-                                    "width": "18dp",
+                                    "width": "${data.width}dp",
                                     "height": "${data.height}dp",
                                     "backgroundColor": "${data.color}",
                                     "borderRadius": "6dp"
@@ -307,6 +348,7 @@
                                     "type": "Text",
                                     "text": "${data.label}",
                                     "style": "textCaption",
+                                    "opacity": "${data.labelOpacity}",
                                     "paddingTop": "4dp"
                                   }
                                 ]

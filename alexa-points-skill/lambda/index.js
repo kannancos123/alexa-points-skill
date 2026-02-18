@@ -16,6 +16,7 @@ const FAMILIES_TAB = process.env.GOOGLE_FAMILIES_TAB || 'Families';
 const EVENTS_TAB_PREFIX = process.env.GOOGLE_EVENTS_TAB_PREFIX || 'Family_';
 
 const MAX_BAR_HEIGHT = 200;
+const SPARK_MAX_HEIGHT = 60;
 const MAX_KIDS = 6;
 const EVENTS_HEADER = [
   'timestamp_iso',
@@ -313,18 +314,18 @@ function normalizeKidName(raw, kids) {
   return match || null;
 }
 
-function buildDateSeries(now, dayCount) {
+function buildDateSeries(now, dayCount, labelFormat = 'MMM d') {
   const day0 = now.startOf('day');
   const days = [];
   for (let i = dayCount - 1; i >= 0; i -= 1) {
     days.push(day0.minus({ days: i }));
   }
   const dates = days.map((d) => d.toISODate());
-  const labels = days.map((d) => d.toFormat('MMM d'));
+  const labels = days.map((d) => d.toFormat(labelFormat));
   return { dates, labels };
 }
 
-function buildMonthSeries(now) {
+function buildMonthSeries(now, labelFormat = 'd') {
   const start = now.startOf('month');
   const day0 = now.startOf('day');
   const diffDays = Math.floor(day0.diff(start, 'days').days);
@@ -333,7 +334,7 @@ function buildMonthSeries(now) {
     days.push(start.plus({ days: i }));
   }
   const dates = days.map((d) => d.toISODate());
-  const labels = days.map((d) => d.toFormat('MMM d'));
+  const labels = days.map((d) => d.toFormat(labelFormat));
   return { dates, labels };
 }
 
@@ -356,7 +357,16 @@ function buildTotals(events, dates, kids) {
   return totals;
 }
 
-function buildTrendPayload(dates, labels, totals, kids, title = 'Last 3 Days') {
+function buildTrendPayload(
+  dates,
+  labels,
+  totals,
+  kids,
+  title = 'Last 3 Days',
+  summaryLabel = 'Today',
+  summaryTotals = null,
+  rangeLabel = null
+) {
   const series = kids.map((name) => {
     const values = dates.map((date) => totals[date][name] || 0);
     return { name, values };
@@ -368,28 +378,76 @@ function buildTrendPayload(dates, labels, totals, kids, title = 'Last 3 Days') {
   );
 
   const lastDate = dates[dates.length - 1];
-  const lastLabel = labels[labels.length - 1];
-  const todayTotals = totals[lastDate] || {};
-  const today = kids.map((name) => {
-    const value = todayTotals[name] || 0;
+  const fallbackTotals = totals[lastDate] || {};
+  const summaryValues = summaryTotals || fallbackTotals;
+  const summary = kids.map((name) => {
+    const value = summaryValues[name] || 0;
     const display = value > 0 ? `+${value}` : `${value}`;
     return { name, value, display };
   });
 
+  const count = dates.length;
+  let barWidth = 18;
+  let barSpacing = 6;
+  if (count <= 3) {
+    barWidth = 18;
+    barSpacing = 6;
+  } else if (count <= 7) {
+    barWidth = 12;
+    barSpacing = 4;
+  } else if (count <= 14) {
+    barWidth = 8;
+    barSpacing = 3;
+  } else {
+    barWidth = 6;
+    barSpacing = 2;
+  }
+
+  const labelStep = count <= 7 ? 1 : Math.ceil(count / 5);
+
+  const sparkValues = dates.map((date) => {
+    let total = 0;
+    for (const kid of kids) {
+      total += totals[date][kid] || 0;
+    }
+    return total;
+  });
+  const sparkMaxAbs = Math.max(1, ...sparkValues.map((v) => Math.abs(v)));
+  const sparkWidth = Math.max(4, Math.round(barWidth * 0.7));
+  const spark = sparkValues.map((value, idx) => {
+    const showLabel = idx % labelStep === 0 || idx === count - 1;
+    return {
+      value,
+      height: Math.round((Math.abs(value) / sparkMaxAbs) * SPARK_MAX_HEIGHT),
+      color: value < 0 ? '#D9480F' : '#2F9E44',
+      label: showLabel ? labels[idx] : '',
+      labelOpacity: showLabel ? 1 : 0,
+      width: sparkWidth,
+    };
+  });
+
   const people = series.map((s) => ({
     name: s.name,
-    bars: s.values.map((value, idx) => ({
-      label: labels[idx],
-      value,
-      height: Math.round((Math.abs(value) / maxAbs) * MAX_BAR_HEIGHT),
-      color: value < 0 ? '#D9480F' : '#2F9E44',
-    })),
+    bars: s.values.map((value, idx) => {
+      const showLabel = idx % labelStep === 0 || idx === count - 1;
+      return {
+        label: showLabel ? labels[idx] : '',
+        labelOpacity: showLabel ? 1 : 0,
+        value,
+        height: Math.round((Math.abs(value) / maxAbs) * MAX_BAR_HEIGHT),
+        color: value < 0 ? '#D9480F' : '#2F9E44',
+        width: barWidth,
+      };
+    }),
   }));
 
   return {
     title,
-    dateLabel: lastLabel,
-    today,
+    summaryLabel,
+    dateLabel: rangeLabel || labels[labels.length - 1],
+    barSpacing,
+    summary,
+    spark,
     people,
   };
 }
@@ -462,19 +520,27 @@ async function buildSummaryData(tabName, kids, period = 'today') {
   let dates = [];
   let labels = [];
   let title = 'Last 3 Days';
+  let summaryLabel = 'Today';
+  let rangeLabel = now.toFormat('MMM d');
 
   if (period === 'week') {
-    ({ dates, labels } = buildDateSeries(now, 7));
+    ({ dates, labels } = buildDateSeries(now, 7, 'EEE'));
     title = 'Last 7 Days';
+    summaryLabel = 'This Week';
+    rangeLabel = `${now.minus({ days: 6 }).toFormat('MMM d')}–${now.toFormat(
+      'MMM d'
+    )}`;
   } else if (period === 'month') {
     ({ dates, labels } = buildMonthSeries(now));
     title = 'This Month';
+    summaryLabel = 'This Month';
+    rangeLabel = now.toFormat('MMMM yyyy');
   } else {
     ({ dates, labels } = buildDateSeries(now, 3));
   }
 
   const totals = buildTotals(events, dates, kids);
-  return { now, dates, labels, totals, title };
+  return { now, dates, labels, totals, title, summaryLabel, rangeLabel };
 }
 
 function aggregateTotals(totals, dates, kids) {
@@ -585,7 +651,10 @@ const LaunchRequestHandler = {
         summaryData.labels,
         summaryData.totals,
         config.kids,
-        summaryData.title
+        summaryData.title,
+        summaryData.summaryLabel,
+        null,
+        summaryData.rangeLabel
       );
       responseBuilder.addDirective({
         type: 'Alexa.Presentation.APL.RenderDocument',
@@ -712,7 +781,10 @@ const AdjustPointsIntentHandler = {
         summaryData.labels,
         summaryData.totals,
         config.kids,
-        summaryData.title
+        summaryData.title,
+        summaryData.summaryLabel,
+        null,
+        summaryData.rangeLabel
       );
       responseBuilder.addDirective({
         type: 'Alexa.Presentation.APL.RenderDocument',
@@ -757,13 +829,20 @@ const SummaryIntentHandler = {
       .reprompt(buildFollowUpPrompt());
     addDynamicKids(responseBuilder, config.kids);
 
-    if (supportsAPL(handlerInput) && period === 'today') {
+    if (supportsAPL(handlerInput)) {
+      const summaryTotals =
+        period === 'today'
+          ? null
+          : aggregateTotals(summaryData.totals, summaryData.dates, config.kids);
       const payload = buildTrendPayload(
         summaryData.dates,
         summaryData.labels,
         summaryData.totals,
         config.kids,
-        summaryData.title
+        summaryData.title,
+        summaryData.summaryLabel,
+        summaryTotals,
+        summaryData.rangeLabel
       );
       responseBuilder.addDirective({
         type: 'Alexa.Presentation.APL.RenderDocument',
