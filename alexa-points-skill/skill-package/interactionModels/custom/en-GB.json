@@ -58,14 +58,11 @@
             "{period} summary",
             "points for {period}",
             "points {period}",
-            "summary this week",
-            "summary this month",
-            "points this week",
-            "points this month",
-            "weekly summary",
-            "monthly summary",
-            "weekly points",
-            "monthly points"
+            "summary {period}",
+            "{period} points",
+            "what is the {period} summary",
+            "give me the {period} summary",
+            "what is the summary for {period}"
           ],
           "slots": [
             {
