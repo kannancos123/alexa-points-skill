@@ -61,30 +61,18 @@
               {
                 "type": "Container",
                 "direction": "column",
+                "alignItems": "center",
                 "spacing": "${@viewportHeight * 0.05}",
                 "data": "${payload.summary}",
                 "items": [
                   {
-                    "type": "Container",
-                    "direction": "row",
-                    "justifyContent": "spaceBetween",
-                    "alignItems": "center",
-                    "items": [
-                      {
-                        "type": "Text",
-                        "text": "${data.name}",
-                        "style": "nameRound",
-                        "fontSize": "${max(22, @viewportWidth * 0.07)}",
-                        "maxLines": 1
-                      },
-                      {
-                        "type": "Text",
-                        "text": "${data.display}",
-                        "style": "pointsRound",
-                        "fontSize": "${max(22, @viewportWidth * 0.07)}",
-                        "maxLines": 1
-                      }
-                    ]
+                    "type": "Text",
+                    "text": "${data.name} ${data.display}",
+                    "style": "pointsRound",
+                    "fontSize": "${max(22, @viewportWidth * 0.07)}",
+                    "textAlign": "center",
+                    "width": "100%",
+                    "maxLines": 1
                   }
                 ]
               }
@@ -106,30 +94,18 @@
           {
             "type": "Container",
             "direction": "column",
+            "alignItems": "center",
             "spacing": "${@viewportHeight * 0.05}",
             "data": "${payload.summary}",
             "items": [
               {
-                "type": "Container",
-                "direction": "row",
-                "justifyContent": "spaceBetween",
-                "alignItems": "center",
-                "items": [
-                  {
-                    "type": "Text",
-                    "text": "${data.name}",
-                    "style": "nameText",
-                    "fontSize": "${min(88, max(36, @viewportWidth * 0.055))}",
-                    "maxLines": 1
-                  },
-                  {
-                    "type": "Text",
-                    "text": "${data.display}",
-                    "style": "pointsText",
-                    "fontSize": "${min(96, max(40, @viewportWidth * 0.06))}",
-                    "maxLines": 1
-                  }
-                ]
+                "type": "Text",
+                "text": "${data.name} ${data.display}",
+                "style": "pointsText",
+                "fontSize": "${min(96, max(40, @viewportWidth * 0.06))}",
+                "textAlign": "center",
+                "width": "100%",
+                "maxLines": 1
               }
             ]
           }
