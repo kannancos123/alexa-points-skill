@@ -396,6 +396,13 @@ function joinWithAnd(items) {
   return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
 }
 
+function buildFollowUpPrompt(kids) {
+  if (!kids || kids.length === 0) {
+    return 'What would you like to do next?';
+  }
+  return `Anything else? You can say add a point for ${kids[0]} or ask for the summary.`;
+}
+
 function supportsAPL(handlerInput) {
   const interfaces = Alexa.getSupportedInterfaces(handlerInput.requestEnvelope);
   return interfaces && interfaces['Alexa.Presentation.APL'];
@@ -556,7 +563,9 @@ const LaunchRequestHandler = {
       summaryData.dates
     );
 
-    const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    const responseBuilder = handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(buildFollowUpPrompt(config.kids));
     addDynamicKids(responseBuilder, config.kids);
 
     if (supportsAPL(handlerInput)) {
@@ -608,7 +617,9 @@ const ConfigureKidsIntentHandler = {
       saved.kids
     )}. You can say, add a point for ${saved.kids[0]}.`;
 
-    const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    const responseBuilder = handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(buildFollowUpPrompt(saved.kids));
     addDynamicKids(responseBuilder, saved.kids);
     return responseBuilder.getResponse();
   },
@@ -679,7 +690,9 @@ const AdjustPointsIntentHandler = {
       Math.abs(delta) === 1 ? 'point' : 'points'
     } for ${person}. ${person} has ${formatPoints(todayTotal)} today.`;
 
-    const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    const responseBuilder = handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(buildFollowUpPrompt(config.kids));
     addDynamicKids(responseBuilder, config.kids);
 
     if (supportsAPL(handlerInput)) {
@@ -728,7 +741,9 @@ const SummaryIntentHandler = {
       summaryData.dates
     );
 
-    const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
+    const responseBuilder = handlerInput.responseBuilder
+      .speak(speakOutput)
+      .reprompt(buildFollowUpPrompt(config.kids));
     addDynamicKids(responseBuilder, config.kids);
 
     if (supportsAPL(handlerInput) && period === 'today') {
