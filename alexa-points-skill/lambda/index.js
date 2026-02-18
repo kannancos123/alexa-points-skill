@@ -500,22 +500,22 @@ function parseSummaryPeriod(raw) {
 }
 
 function buildSummarySpeech(period, now, kids, totals, dates) {
-  let prefix = 'Today';
   let values = {};
 
   if (period === 'week') {
-    prefix = 'This week';
     values = aggregateTotals(totals, dates, kids);
+    const parts = kids.map((kid) => `${kid} has ${formatPoints(values[kid] || 0)}`);
+    return `The weekly summary is ${joinWithAnd(parts)}.`;
   } else if (period === 'month') {
-    prefix = 'This month';
     values = aggregateTotals(totals, dates, kids);
+    const parts = kids.map((kid) => `${kid} has ${formatPoints(values[kid] || 0)}`);
+    return `The monthly summary is ${joinWithAnd(parts)}.`;
   } else {
     const today = now.toISODate();
     values = totals[today] || {};
+    const parts = kids.map((kid) => `${kid} has ${formatPoints(values[kid] || 0)}`);
+    return `Today, ${joinWithAnd(parts)}.`;
   }
-
-  const parts = kids.map((kid) => `${kid} has ${formatPoints(values[kid] || 0)}`);
-  return `${prefix}, ${joinWithAnd(parts)}.`;
 }
 
 const CanFulfillIntentRequestHandler = {
