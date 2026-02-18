@@ -382,7 +382,7 @@ function buildTrendPayload(
   const summaryValues = summaryTotals || fallbackTotals;
   const summary = kids.map((name) => {
     const value = summaryValues[name] || 0;
-    const display = value > 0 ? `+${value}` : `${value}`;
+    const display = formatPoints(value);
     return { name, value, display };
   });
 

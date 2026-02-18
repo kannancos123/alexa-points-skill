@@ -3,100 +3,35 @@
   "version": "2022.2",
   "theme": "light",
   "styles": {
-    "textTitle": {
+    "nameText": {
       "values": [
         {
-          "fontSize": "30dp",
-          "fontWeight": "700",
-          "color": "#111827"
-        }
-      ]
-    },
-    "textTitleRound": {
-      "values": [
-        {
-          "fontSize": "26dp",
-          "fontWeight": "700",
-          "color": "#111827"
-        }
-      ]
-    },
-    "textSection": {
-      "values": [
-        {
-          "fontSize": "20dp",
           "fontWeight": "600",
           "color": "#111827"
         }
       ]
     },
-    "textName": {
+    "pointsText": {
       "values": [
         {
-          "fontSize": "18dp",
-          "fontWeight": "500",
-          "color": "#1F2937"
-        }
-      ]
-    },
-    "textNameSmall": {
-      "values": [
-        {
-          "fontSize": "16dp",
-          "fontWeight": "600",
-          "color": "#1F2937"
-        }
-      ]
-    },
-    "textNameRound": {
-      "values": [
-        {
-          "fontSize": "18dp",
-          "fontWeight": "600",
-          "color": "#1F2937"
-        }
-      ]
-    },
-    "textScore": {
-      "values": [
-        {
-          "fontSize": "22dp",
           "fontWeight": "700",
           "color": "#1D4ED8"
         }
       ]
     },
-    "textScoreRound": {
+    "nameRound": {
       "values": [
         {
-          "fontSize": "22dp",
+          "fontWeight": "600",
+          "color": "#111827"
+        }
+      ]
+    },
+    "pointsRound": {
+      "values": [
+        {
           "fontWeight": "700",
           "color": "#1D4ED8"
-        }
-      ]
-    },
-    "textChip": {
-      "values": [
-        {
-          "fontSize": "14dp",
-          "fontWeight": "600",
-          "color": "#1D4ED8"
-        }
-      ]
-    },
-    "textSubtle": {
-      "values": [
-        {
-          "fontSize": "14dp",
-          "color": "#6B7280"
-        }
-      ]
-    },
-    "textCaption": {
-      "values": [
-        {
-          "fontSize": "12dp",
-          "color": "#6B7280"
         }
       ]
     }
@@ -118,89 +53,36 @@
             "height": "100%",
             "backgroundColor": "#F6F7FB",
             "borderRadius": "220dp",
-            "padding": "20dp",
+            "paddingLeft": "${@viewportWidth * 0.08}",
+            "paddingRight": "${@viewportWidth * 0.08}",
+            "paddingTop": "${@viewportHeight * 0.12}",
+            "paddingBottom": "${@viewportHeight * 0.12}",
             "items": [
               {
-                "type": "Text",
-                "text": "Family Points",
-                "style": "textTitleRound",
-                "textAlign": "center"
-              },
-              {
-                "type": "Text",
-                "text": "${payload.dateLabel}",
-                "style": "textSubtle",
-                "textAlign": "center",
-                "paddingTop": "4dp"
-              },
-              {
-                "type": "Text",
-                "text": "${payload.summaryLabel}",
-                "style": "textSection",
-                "textAlign": "center",
-                "paddingTop": "12dp"
-              },
-              {
                 "type": "Container",
-                "spacing": "8dp",
-                "paddingTop": "12dp",
+                "direction": "column",
+                "spacing": "${@viewportHeight * 0.05}",
                 "data": "${payload.summary}",
                 "items": [
                   {
                     "type": "Container",
                     "direction": "row",
                     "justifyContent": "spaceBetween",
+                    "alignItems": "center",
                     "items": [
                       {
                         "type": "Text",
                         "text": "${data.name}",
-                        "style": "textNameRound"
+                        "style": "nameRound",
+                        "fontSize": "${max(22, @viewportWidth * 0.07)}",
+                        "maxLines": 1
                       },
                       {
                         "type": "Text",
                         "text": "${data.display}",
-                        "style": "textScoreRound"
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "type": "Text",
-                "text": "${payload.title}",
-                "style": "textSection",
-                "textAlign": "center",
-                "paddingTop": "12dp"
-              },
-              {
-                "type": "Container",
-                "direction": "row",
-                "alignItems": "end",
-                "justifyContent": "center",
-                "height": "70dp",
-                "spacing": "${payload.barSpacing}dp",
-                "paddingTop": "8dp",
-                "data": "${payload.spark}",
-                "items": [
-                  {
-                    "type": "Container",
-                    "direction": "column",
-                    "alignItems": "center",
-                    "justifyContent": "end",
-                    "items": [
-                      {
-                        "type": "Frame",
-                        "width": "${data.width}dp",
-                        "height": "${data.height}dp",
-                        "backgroundColor": "${data.color}",
-                        "borderRadius": "4dp"
-                      },
-                      {
-                        "type": "Text",
-                        "text": "${data.label}",
-                        "style": "textCaption",
-                        "opacity": "${data.labelOpacity}",
-                        "paddingTop": "2dp"
+                        "style": "pointsRound",
+                        "fontSize": "${max(22, @viewportWidth * 0.07)}",
+                        "maxLines": 1
                       }
                     ]
                   }
@@ -215,149 +97,37 @@
         "when": "${@viewportShape != 'round'}",
         "width": "100vw",
         "height": "100vh",
-        "padding": "24dp",
+        "paddingLeft": "${@viewportWidth * 0.06}",
+        "paddingRight": "${@viewportWidth * 0.06}",
+        "paddingTop": "${@viewportHeight * 0.08}",
+        "paddingBottom": "${@viewportHeight * 0.08}",
         "backgroundColor": "#F2F4FA",
         "items": [
           {
             "type": "Container",
-            "direction": "row",
-            "alignItems": "center",
-            "justifyContent": "spaceBetween",
+            "direction": "column",
+            "spacing": "${@viewportHeight * 0.05}",
+            "data": "${payload.summary}",
             "items": [
               {
-                "type": "Text",
-                "text": "Family Points",
-                "style": "textTitle"
-              },
-              {
-                "type": "Frame",
-                "backgroundColor": "#E0E7FF",
-                "borderRadius": "14dp",
-                "paddingLeft": "12dp",
-                "paddingRight": "12dp",
-                "paddingTop": "6dp",
-                "paddingBottom": "6dp",
+                "type": "Container",
+                "direction": "row",
+                "justifyContent": "spaceBetween",
+                "alignItems": "center",
                 "items": [
                   {
                     "type": "Text",
-                    "text": "${payload.dateLabel}",
-                    "style": "textChip"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "Container",
-            "direction": "row",
-            "spacing": "18dp",
-            "paddingTop": "18dp",
-            "grow": 1,
-            "items": [
-              {
-                "type": "Frame",
-                "width": "34%",
-                "backgroundColor": "#FFFFFF",
-                "borderRadius": "18dp",
-                "padding": "16dp",
-                "items": [
-                  {
-                    "type": "Text",
-                    "text": "${payload.summaryLabel}",
-                    "style": "textSection"
+                    "text": "${data.name}",
+                    "style": "nameText",
+                    "fontSize": "${min(88, max(36, @viewportWidth * 0.055))}",
+                    "maxLines": 1
                   },
                   {
-                    "type": "Container",
-                    "spacing": "10dp",
-                    "paddingTop": "10dp",
-                    "data": "${payload.summary}",
-                    "items": [
-                      {
-                        "type": "Container",
-                        "direction": "row",
-                        "justifyContent": "spaceBetween",
-                        "items": [
-                          {
-                            "type": "Text",
-                            "text": "${data.name}",
-                            "style": "textName"
-                          },
-                          {
-                            "type": "Text",
-                            "text": "${data.display}",
-                            "style": "textScore"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "type": "Frame",
-                "grow": 1,
-                "backgroundColor": "#FFFFFF",
-                "borderRadius": "18dp",
-                "padding": "16dp",
-                "items": [
-                  {
                     "type": "Text",
-                    "text": "${payload.title}",
-                    "style": "textSection"
-                  },
-                  {
-                    "type": "Container",
-                    "direction": "row",
-                    "spacing": "12dp",
-                    "paddingTop": "8dp",
-                    "data": "${payload.people}",
-                    "items": [
-                      {
-                        "type": "Container",
-                        "width": "25%",
-                        "alignItems": "center",
-                        "items": [
-                          {
-                            "type": "Text",
-                            "text": "${data.name}",
-                            "style": "textNameSmall"
-                          },
-                          {
-                            "type": "Container",
-                            "direction": "row",
-                            "alignItems": "end",
-                            "justifyContent": "center",
-                            "height": "180dp",
-                            "spacing": "${payload.barSpacing}dp",
-                            "data": "${data.bars}",
-                            "items": [
-                              {
-                                "type": "Container",
-                                "direction": "column",
-                                "alignItems": "center",
-                                "justifyContent": "end",
-                                "items": [
-                                  {
-                                    "type": "Frame",
-                                    "width": "${data.width}dp",
-                                    "height": "${data.height}dp",
-                                    "backgroundColor": "${data.color}",
-                                    "borderRadius": "6dp"
-                                  },
-                                  {
-                                    "type": "Text",
-                                    "text": "${data.label}",
-                                    "style": "textCaption",
-                                    "opacity": "${data.labelOpacity}",
-                                    "paddingTop": "4dp"
-                                  }
-                                ]
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
+                    "text": "${data.display}",
+                    "style": "pointsText",
+                    "fontSize": "${min(96, max(40, @viewportWidth * 0.06))}",
+                    "maxLines": 1
                   }
                 ]
               }
