@@ -367,6 +367,15 @@ function buildTrendPayload(dates, labels, totals, kids, title = 'Last 3 Days') {
     ...series.flatMap((s) => s.values.map((v) => Math.abs(v)))
   );
 
+  const lastDate = dates[dates.length - 1];
+  const lastLabel = labels[labels.length - 1];
+  const todayTotals = totals[lastDate] || {};
+  const today = kids.map((name) => {
+    const value = todayTotals[name] || 0;
+    const display = value > 0 ? `+${value}` : `${value}`;
+    return { name, value, display };
+  });
+
   const people = series.map((s) => ({
     name: s.name,
     bars: s.values.map((value, idx) => ({
@@ -377,7 +386,12 @@ function buildTrendPayload(dates, labels, totals, kids, title = 'Last 3 Days') {
     })),
   }));
 
-  return { title, people };
+  return {
+    title,
+    dateLabel: lastLabel,
+    today,
+    people,
+  };
 }
 
 function formatPoints(value) {
@@ -396,11 +410,8 @@ function joinWithAnd(items) {
   return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
 }
 
-function buildFollowUpPrompt(kids) {
-  if (!kids || kids.length === 0) {
-    return 'What would you like to do next?';
-  }
-  return `Anything else? You can say add a point for ${kids[0]} or ask for the summary.`;
+function buildFollowUpPrompt() {
+  return 'Anything else?';
 }
 
 function supportsAPL(handlerInput) {
@@ -565,7 +576,7 @@ const LaunchRequestHandler = {
 
     const responseBuilder = handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt(buildFollowUpPrompt(config.kids));
+      .reprompt(buildFollowUpPrompt());
     addDynamicKids(responseBuilder, config.kids);
 
     if (supportsAPL(handlerInput)) {
@@ -619,7 +630,7 @@ const ConfigureKidsIntentHandler = {
 
     const responseBuilder = handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt(buildFollowUpPrompt(saved.kids));
+      .reprompt(buildFollowUpPrompt());
     addDynamicKids(responseBuilder, saved.kids);
     return responseBuilder.getResponse();
   },
@@ -692,7 +703,7 @@ const AdjustPointsIntentHandler = {
 
     const responseBuilder = handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt(buildFollowUpPrompt(config.kids));
+      .reprompt(buildFollowUpPrompt());
     addDynamicKids(responseBuilder, config.kids);
 
     if (supportsAPL(handlerInput)) {
@@ -743,7 +754,7 @@ const SummaryIntentHandler = {
 
     const responseBuilder = handlerInput.responseBuilder
       .speak(speakOutput)
-      .reprompt(buildFollowUpPrompt(config.kids));
+      .reprompt(buildFollowUpPrompt());
     addDynamicKids(responseBuilder, config.kids);
 
     if (supportsAPL(handlerInput) && period === 'today') {
@@ -766,6 +777,22 @@ const SummaryIntentHandler = {
   },
 };
 
+const DoneIntentHandler = {
+  canHandle(handlerInput) {
+    return (
+      Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+      (Alexa.getIntentName(handlerInput.requestEnvelope) === 'DoneIntent' ||
+        Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent')
+    );
+  },
+  handle(handlerInput) {
+    return handlerInput.responseBuilder
+      .speak('Okay.')
+      .withShouldEndSession(true)
+      .getResponse();
+  },
+};
+
 const HelpIntentHandler = {
   canHandle(handlerInput) {
     return (
@@ -775,7 +802,7 @@ const HelpIntentHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      'You can say: my kids are Anna and Ben. Or say: add a point for Anna. Or: today\'s summary.';
+      'You can say: my kids are Anna and Ben. Or say: add a point for Anna. Or: today\'s summary. Say done to exit.';
     return handlerInput.responseBuilder
       .speak(speakOutput)
       .reprompt(speakOutput)
@@ -808,7 +835,7 @@ const FallbackIntentHandler = {
   },
   handle(handlerInput) {
     const speakOutput =
-      'Sorry, I did not catch that. Try saying add a point for your child or ask for today\'s summary.';
+      'Sorry, I did not catch that. Try saying add a point, summary, or done.';
     return handlerInput.responseBuilder
       .speak(speakOutput)
       .reprompt(speakOutput)
@@ -835,6 +862,7 @@ exports.handler = Alexa.SkillBuilders.custom()
     ConfigureKidsIntentHandler,
     AdjustPointsIntentHandler,
     SummaryIntentHandler,
+    DoneIntentHandler,
     HelpIntentHandler,
     CancelAndStopIntentHandler,
     FallbackIntentHandler

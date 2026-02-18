@@ -102,6 +102,21 @@
         {
           "name": "AMAZON.FallbackIntent",
           "samples": []
+        },
+        {
+          "name": "DoneIntent",
+          "samples": [
+            "done",
+            "that's all",
+            "that's it",
+            "nothing else",
+            "no thanks",
+            "no thank you"
+          ]
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": []
         }
       ],
       "types": [

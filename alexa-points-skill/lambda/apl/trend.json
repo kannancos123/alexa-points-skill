@@ -2,75 +2,316 @@
   "type": "APL",
   "version": "2022.2",
   "theme": "light",
+  "styles": {
+    "textTitle": {
+      "values": [
+        {
+          "fontSize": "30dp",
+          "fontWeight": "700",
+          "color": "#111827"
+        }
+      ]
+    },
+    "textTitleRound": {
+      "values": [
+        {
+          "fontSize": "26dp",
+          "fontWeight": "700",
+          "color": "#111827"
+        }
+      ]
+    },
+    "textSection": {
+      "values": [
+        {
+          "fontSize": "20dp",
+          "fontWeight": "600",
+          "color": "#111827"
+        }
+      ]
+    },
+    "textName": {
+      "values": [
+        {
+          "fontSize": "18dp",
+          "fontWeight": "500",
+          "color": "#1F2937"
+        }
+      ]
+    },
+    "textNameSmall": {
+      "values": [
+        {
+          "fontSize": "16dp",
+          "fontWeight": "600",
+          "color": "#1F2937"
+        }
+      ]
+    },
+    "textNameRound": {
+      "values": [
+        {
+          "fontSize": "18dp",
+          "fontWeight": "600",
+          "color": "#1F2937"
+        }
+      ]
+    },
+    "textScore": {
+      "values": [
+        {
+          "fontSize": "22dp",
+          "fontWeight": "700",
+          "color": "#1D4ED8"
+        }
+      ]
+    },
+    "textScoreRound": {
+      "values": [
+        {
+          "fontSize": "22dp",
+          "fontWeight": "700",
+          "color": "#1D4ED8"
+        }
+      ]
+    },
+    "textChip": {
+      "values": [
+        {
+          "fontSize": "14dp",
+          "fontWeight": "600",
+          "color": "#1D4ED8"
+        }
+      ]
+    },
+    "textSubtle": {
+      "values": [
+        {
+          "fontSize": "14dp",
+          "color": "#6B7280"
+        }
+      ]
+    },
+    "textCaption": {
+      "values": [
+        {
+          "fontSize": "12dp",
+          "color": "#6B7280"
+        }
+      ]
+    }
+  },
   "mainTemplate": {
     "parameters": ["payload"],
     "items": [
       {
         "type": "Container",
-        "direction": "column",
-        "paddingTop": "20dp",
-        "paddingLeft": "24dp",
-        "paddingRight": "24dp",
+        "when": "${@viewportShape == 'round'}",
+        "width": "100vw",
+        "height": "100vh",
+        "alignItems": "center",
+        "justifyContent": "center",
         "items": [
           {
-            "type": "Text",
-            "text": "${payload.title}",
-            "fontSize": "28dp",
-            "fontWeight": "700"
+            "type": "Frame",
+            "width": "100%",
+            "height": "100%",
+            "backgroundColor": "#F6F7FB",
+            "borderRadius": "220dp",
+            "padding": "20dp",
+            "items": [
+              {
+                "type": "Text",
+                "text": "Family Points",
+                "style": "textTitleRound",
+                "textAlign": "center"
+              },
+              {
+                "type": "Text",
+                "text": "${payload.dateLabel}",
+                "style": "textSubtle",
+                "textAlign": "center",
+                "paddingTop": "4dp"
+              },
+              {
+                "type": "Text",
+                "text": "Today",
+                "style": "textSection",
+                "textAlign": "center",
+                "paddingTop": "12dp"
+              },
+              {
+                "type": "Container",
+                "spacing": "8dp",
+                "paddingTop": "12dp",
+                "data": "${payload.today}",
+                "items": [
+                  {
+                    "type": "Container",
+                    "direction": "row",
+                    "justifyContent": "spaceBetween",
+                    "items": [
+                      {
+                        "type": "Text",
+                        "text": "${data.name}",
+                        "style": "textNameRound"
+                      },
+                      {
+                        "type": "Text",
+                        "text": "${data.display}",
+                        "style": "textScoreRound"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Container",
+        "when": "${@viewportShape != 'round'}",
+        "width": "100vw",
+        "height": "100vh",
+        "padding": "24dp",
+        "backgroundColor": "#F2F4FA",
+        "items": [
+          {
+            "type": "Container",
+            "direction": "row",
+            "alignItems": "center",
+            "justifyContent": "spaceBetween",
+            "items": [
+              {
+                "type": "Text",
+                "text": "Family Points",
+                "style": "textTitle"
+              },
+              {
+                "type": "Frame",
+                "backgroundColor": "#E0E7FF",
+                "borderRadius": "14dp",
+                "paddingLeft": "12dp",
+                "paddingRight": "12dp",
+                "paddingTop": "6dp",
+                "paddingBottom": "6dp",
+                "items": [
+                  {
+                    "type": "Text",
+                    "text": "${payload.dateLabel}",
+                    "style": "textChip"
+                  }
+                ]
+              }
+            ]
           },
           {
             "type": "Container",
             "direction": "row",
-            "spacing": "16dp",
-            "paddingTop": "12dp",
-            "data": "${payload.people}",
+            "spacing": "18dp",
+            "paddingTop": "18dp",
+            "grow": 1,
             "items": [
               {
-                "type": "Container",
-                "direction": "column",
-                "width": "25%",
-                "alignItems": "center",
+                "type": "Frame",
+                "width": "34%",
+                "backgroundColor": "#FFFFFF",
+                "borderRadius": "18dp",
+                "padding": "16dp",
                 "items": [
                   {
                     "type": "Text",
-                    "text": "${data.name}",
-                    "fontSize": "20dp",
-                    "fontWeight": "600",
-                    "textAlign": "center"
+                    "text": "Today",
+                    "style": "textSection"
+                  },
+                  {
+                    "type": "Container",
+                    "spacing": "10dp",
+                    "paddingTop": "10dp",
+                    "data": "${payload.today}",
+                    "items": [
+                      {
+                        "type": "Container",
+                        "direction": "row",
+                        "justifyContent": "spaceBetween",
+                        "items": [
+                          {
+                            "type": "Text",
+                            "text": "${data.name}",
+                            "style": "textName"
+                          },
+                          {
+                            "type": "Text",
+                            "text": "${data.display}",
+                            "style": "textScore"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "Frame",
+                "grow": 1,
+                "backgroundColor": "#FFFFFF",
+                "borderRadius": "18dp",
+                "padding": "16dp",
+                "items": [
+                  {
+                    "type": "Text",
+                    "text": "${payload.title}",
+                    "style": "textSection"
                   },
                   {
                     "type": "Container",
                     "direction": "row",
-                    "alignItems": "end",
-                    "justifyContent": "center",
-                    "height": "220dp",
-                    "spacing": "10dp",
-                    "data": "${data.bars}",
+                    "spacing": "12dp",
+                    "paddingTop": "8dp",
+                    "data": "${payload.people}",
                     "items": [
                       {
                         "type": "Container",
-                        "direction": "column",
+                        "width": "25%",
                         "alignItems": "center",
-                        "justifyContent": "end",
                         "items": [
                           {
-                            "type": "Frame",
-                            "width": "24dp",
-                            "height": "${data.height}dp",
-                            "backgroundColor": "${data.color}",
-                            "borderRadius": "6dp"
+                            "type": "Text",
+                            "text": "${data.name}",
+                            "style": "textNameSmall"
                           },
                           {
-                            "type": "Text",
-                            "text": "${data.value}",
-                            "fontSize": "14dp",
-                            "paddingTop": "4dp"
-                          },
-                          {
-                            "type": "Text",
-                            "text": "${data.label}",
-                            "fontSize": "12dp",
-                            "color": "#555555"
+                            "type": "Container",
+                            "direction": "row",
+                            "alignItems": "end",
+                            "justifyContent": "center",
+                            "height": "180dp",
+                            "spacing": "6dp",
+                            "data": "${data.bars}",
+                            "items": [
+                              {
+                                "type": "Container",
+                                "direction": "column",
+                                "alignItems": "center",
+                                "justifyContent": "end",
+                                "items": [
+                                  {
+                                    "type": "Frame",
+                                    "width": "18dp",
+                                    "height": "${data.height}dp",
+                                    "backgroundColor": "${data.color}",
+                                    "borderRadius": "6dp"
+                                  },
+                                  {
+                                    "type": "Text",
+                                    "text": "${data.label}",
+                                    "style": "textCaption",
+                                    "paddingTop": "4dp"
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
