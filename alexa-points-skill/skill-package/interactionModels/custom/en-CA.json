@@ -53,7 +53,21 @@
             "how did they do today",
             "what are the points today",
             "how many points today",
-            "give me the summary"
+            "give me the summary",
+            "summary for {period}",
+            "{period} summary",
+            "points for {period}",
+            "points {period}",
+            "summary this week",
+            "summary this month",
+            "points this week",
+            "points this month"
+          ],
+          "slots": [
+            {
+              "name": "period",
+              "type": "SUMMARY_PERIOD"
+            }
           ]
         },
         {
@@ -127,6 +141,44 @@
                   "take away",
                   "minus",
                   "subtract"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "SUMMARY_PERIOD",
+          "values": [
+            {
+              "name": {
+                "value": "today",
+                "synonyms": [
+                  "today",
+                  "daily",
+                  "current day",
+                  "this day"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "week",
+                "synonyms": [
+                  "week",
+                  "weekly",
+                  "this week",
+                  "current week"
+                ]
+              }
+            },
+            {
+              "name": {
+                "value": "month",
+                "synonyms": [
+                  "month",
+                  "monthly",
+                  "this month",
+                  "current month"
                 ]
               }
             }

@@ -313,9 +313,25 @@ function normalizeKidName(raw, kids) {
   return match || null;
 }
 
-function getLast3Days(now) {
+function buildDateSeries(now, dayCount) {
   const day0 = now.startOf('day');
-  const days = [day0.minus({ days: 2 }), day0.minus({ days: 1 }), day0];
+  const days = [];
+  for (let i = dayCount - 1; i >= 0; i -= 1) {
+    days.push(day0.minus({ days: i }));
+  }
+  const dates = days.map((d) => d.toISODate());
+  const labels = days.map((d) => d.toFormat('MMM d'));
+  return { dates, labels };
+}
+
+function buildMonthSeries(now) {
+  const start = now.startOf('month');
+  const day0 = now.startOf('day');
+  const diffDays = Math.floor(day0.diff(start, 'days').days);
+  const days = [];
+  for (let i = 0; i <= diffDays; i += 1) {
+    days.push(start.plus({ days: i }));
+  }
   const dates = days.map((d) => d.toISODate());
   const labels = days.map((d) => d.toFormat('MMM d'));
   return { dates, labels };
@@ -340,7 +356,7 @@ function buildTotals(events, dates, kids) {
   return totals;
 }
 
-function buildTrendPayload(dates, labels, totals, kids) {
+function buildTrendPayload(dates, labels, totals, kids, title = 'Last 3 Days') {
   const series = kids.map((name) => {
     const values = dates.map((date) => totals[date][name] || 0);
     return { name, values };
@@ -361,10 +377,7 @@ function buildTrendPayload(dates, labels, totals, kids) {
     })),
   }));
 
-  return {
-    title: 'Last 3 Days',
-    people,
-  };
+  return { title, people };
 }
 
 function formatPoints(value) {
@@ -425,19 +438,66 @@ function promptForKids(handlerInput) {
     .getResponse();
 }
 
-async function buildSummaryData(tabName, kids) {
+async function buildSummaryData(tabName, kids, period = 'today') {
   const now = DateTime.now().setZone(TIMEZONE);
   const events = await readEvents(tabName);
-  const { dates, labels } = getLast3Days(now);
+  let dates = [];
+  let labels = [];
+  let title = 'Last 3 Days';
+
+  if (period === 'week') {
+    ({ dates, labels } = buildDateSeries(now, 7));
+    title = 'Last 7 Days';
+  } else if (period === 'month') {
+    ({ dates, labels } = buildMonthSeries(now));
+    title = 'This Month';
+  } else {
+    ({ dates, labels } = buildDateSeries(now, 3));
+  }
+
   const totals = buildTotals(events, dates, kids);
-  return { now, dates, labels, totals };
+  return { now, dates, labels, totals, title };
 }
 
-function buildSummarySpeech(now, kids, totals) {
-  const today = now.toISODate();
-  const todayTotals = totals[today] || {};
-  const parts = kids.map((kid) => `${kid} has ${formatPoints(todayTotals[kid] || 0)}`);
-  return `Today, ${joinWithAnd(parts)}.`;
+function aggregateTotals(totals, dates, kids) {
+  const summary = {};
+  for (const kid of kids) {
+    summary[kid] = 0;
+  }
+  for (const date of dates) {
+    const dayTotals = totals[date] || {};
+    for (const kid of kids) {
+      summary[kid] += dayTotals[kid] || 0;
+    }
+  }
+  return summary;
+}
+
+function parseSummaryPeriod(raw) {
+  if (!raw) return 'today';
+  const text = raw.toLowerCase();
+  if (text.includes('week')) return 'week';
+  if (text.includes('month')) return 'month';
+  return 'today';
+}
+
+function buildSummarySpeech(period, now, kids, totals, dates) {
+  let prefix = 'Today';
+  let values = {};
+
+  if (period === 'week') {
+    prefix = 'This week';
+    values = aggregateTotals(totals, dates, kids);
+  } else if (period === 'month') {
+    prefix = 'This month';
+    values = aggregateTotals(totals, dates, kids);
+  } else {
+    const today = now.toISODate();
+    values = totals[today] || {};
+  }
+
+  const parts = kids.map((kid) => `${kid} has ${formatPoints(values[kid] || 0)}`);
+  return `${prefix}, ${joinWithAnd(parts)}.`;
 }
 
 const CanFulfillIntentRequestHandler = {
@@ -460,7 +520,9 @@ const CanFulfillIntentRequestHandler = {
     }
 
     if (intentName === 'SummaryIntent') {
-      return buildCanFulfillResponse('YES');
+      return buildCanFulfillResponse('YES', {
+        period: { canUnderstand: 'YES', canFulfill: 'YES' },
+      });
     }
 
     if (intentName === 'ConfigureKidsIntent') {
@@ -487,9 +549,11 @@ const LaunchRequestHandler = {
 
     const summaryData = await buildSummaryData(config.tabName, config.kids);
     const speakOutput = buildSummarySpeech(
+      'today',
       summaryData.now,
       config.kids,
-      summaryData.totals
+      summaryData.totals,
+      summaryData.dates
     );
 
     const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
@@ -500,7 +564,8 @@ const LaunchRequestHandler = {
         summaryData.dates,
         summaryData.labels,
         summaryData.totals,
-        config.kids
+        config.kids,
+        summaryData.title
       );
       responseBuilder.addDirective({
         type: 'Alexa.Presentation.APL.RenderDocument',
@@ -622,7 +687,8 @@ const AdjustPointsIntentHandler = {
         summaryData.dates,
         summaryData.labels,
         summaryData.totals,
-        config.kids
+        config.kids,
+        summaryData.title
       );
       responseBuilder.addDirective({
         type: 'Alexa.Presentation.APL.RenderDocument',
@@ -651,22 +717,27 @@ const SummaryIntentHandler = {
       return promptForKids(handlerInput);
     }
 
-    const summaryData = await buildSummaryData(config.tabName, config.kids);
+    const rawPeriod = getSlotValue(handlerInput, 'period');
+    const period = parseSummaryPeriod(rawPeriod);
+    const summaryData = await buildSummaryData(config.tabName, config.kids, period);
     const speakOutput = buildSummarySpeech(
+      period,
       summaryData.now,
       config.kids,
-      summaryData.totals
+      summaryData.totals,
+      summaryData.dates
     );
 
     const responseBuilder = handlerInput.responseBuilder.speak(speakOutput);
     addDynamicKids(responseBuilder, config.kids);
 
-    if (supportsAPL(handlerInput)) {
+    if (supportsAPL(handlerInput) && period === 'today') {
       const payload = buildTrendPayload(
         summaryData.dates,
         summaryData.labels,
         summaryData.totals,
-        config.kids
+        config.kids,
+        summaryData.title
       );
       responseBuilder.addDirective({
         type: 'Alexa.Presentation.APL.RenderDocument',
